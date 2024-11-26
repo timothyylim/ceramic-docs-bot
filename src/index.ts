@@ -110,6 +110,12 @@ discordClient.on('messageCreate', async (message: Message) => {
         ];
     }
 
+    // Check if the message content is empty
+    if (!message.content.trim()) {
+        console.log('Received an empty message. Skipping...');
+        return;
+    }
+
     try {
         await message.channel.sendTyping();
 
