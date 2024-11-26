@@ -125,7 +125,7 @@ discordClient.on('messageCreate', async (message: Message) => {
             {
                 model: 'o1-mini', // Ensure you are using a compatible model
                 messages: truncatedHistory,
-                max_tokens: 500,
+                max_completion_tokens: 500,
             },
             {
                 headers: {
