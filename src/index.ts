@@ -143,9 +143,9 @@ discordClient.on('messageCreate', async (message: Message) => {
 
         const reply = response.data.choices[0].message.content;
 
-        // Avoid repeating responses
-        if (previousReplies[userId] === reply) {
-            await message.channel.send('I think I already mentioned that!');
+        // Avoid repeating responses and sending empty messages
+        if (previousReplies[userId] === reply || !reply.trim()) {
+            await message.channel.send('I think I already mentioned that or I have nothing to add!');
         } else {
             previousReplies[userId] = reply;
             userHistory[userId].push({ role: 'assistant', content: reply });
