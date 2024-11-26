@@ -117,11 +117,15 @@ discordClient.on('messageCreate', async (message: Message) => {
         // Append user's message to their history
         userHistory[userId].push({ role: 'user', content: message.content });
 
+        // Limit conversation history to the last 10 messages
+        const maxHistoryLength = 10;
+        const truncatedHistory = userHistory[userId].slice(-maxHistoryLength);
+
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
                 model: 'gpt-3.5-turbo',
-                messages: userHistory[userId],
+                messages: truncatedHistory,
             },
             {
                 headers: {
@@ -160,6 +164,7 @@ discordClient.on('messageCreate', async (message: Message) => {
         }
     }
 });
+
 
 discordClient
     .login(discordToken)
