@@ -84,11 +84,14 @@ const discordClient = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent, // Enable Message Content Intent
-        GatewayIntentBits.DirectMessages, // Add this to receive DMs
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.DirectMessages,
     ],
     partials: [Partials.Channel], // Add this to handle DM channels
 });
+
+const userHistory: Record<string, any[]> = {}; // Stores conversation history for users
+const previousReplies: Record<string, string> = {}; // Tracks previous replies to avoid duplicates
 
 // Discord Bot Event: Ready
 discordClient.once('ready', () => {
@@ -97,39 +100,47 @@ discordClient.once('ready', () => {
 
 // Discord Bot Event: Message Create
 discordClient.on('messageCreate', async (message: Message) => {
-    console.log('messageCreate');
-    console.log(`Received message from ${message.author.tag} in ${message.channel.type}: ${message.content}`);
+    if (message.author.bot || message.channel.type !== ChannelType.DM) return;
 
-    if (message.author.bot) return;
+    const userId = message.author.id;
 
-    if (message.channel.type === ChannelType.DM) {
-        try {
-            await message.channel.sendTyping();
-            const maxContextLength = 1000; // Adjust as needed
-            const limitedContext = context.length > maxContextLength ? context.substring(0, maxContextLength) : context;
+    // Initialize conversation history for the user if not present
+    if (!userHistory[userId]) {
+        userHistory[userId] = [
+            { role: 'system', content: 'You are ChatGPT, a helpful assistant.' },
+            { role: 'system', content: context },
+        ];
+    }
 
-            const messages = [
-                { role: 'system', content: 'You are ChatGPT, a helpful assistant.' },
-                { role: 'system', content: limitedContext },
-                { role: 'user', content: message.content },
-            ];
+    try {
+        await message.channel.sendTyping();
 
-            const response = await axios.post(
-                'https://api.openai.com/v1/chat/completions',
-                {
-                    model: 'gpt-3.5-turbo',
-                    messages: messages,
-                    max_tokens: 500,
+        // Append user's message to their history
+        userHistory[userId].push({ role: 'user', content: message.content });
+
+        const response = await axios.post(
+            'https://api.openai.com/v1/chat/completions',
+            {
+                model: 'gpt-3.5-turbo',
+                messages: userHistory[userId],
+                max_tokens: 500,
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                    'Content-Type': 'application/json',
                 },
-                {
-                    headers: {
-                        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
+            }
+        );
 
-            const reply = response.data.choices[0].message.content;
+        const reply = response.data.choices[0].message.content;
+
+        // Avoid repeating responses
+        if (previousReplies[userId] === reply) {
+            await message.channel.send('I think I already mentioned that!');
+        } else {
+            previousReplies[userId] = reply;
+            userHistory[userId].push({ role: 'assistant', content: reply });
 
             if (reply.length > 2000) {
                 const replyChunks = reply.match(/[\s\S]{1,2000}/g) || [];
@@ -139,13 +150,11 @@ discordClient.on('messageCreate', async (message: Message) => {
             } else {
                 await message.channel.send(reply);
             }
-        } catch (error) {
-            // @ts-ignore
-            console.error('Error communicating with OpenAI:', error.response?.data || error.message);
-            await message.channel.send('Sorry, I encountered an error while processing your request.');
         }
-    } else {
-        console.error('Message received in a non-DM channel.');
+    } catch (error) {
+        // @ts-ignore
+        console.error('Error communicating with OpenAI:', error.response?.data || error.message);
+        await message.channel.send('Sorry, I encountered an error while processing your request.');
     }
 });
 
