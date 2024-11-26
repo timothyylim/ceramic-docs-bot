@@ -98,7 +98,6 @@ discordClient.once('ready', () => {
     console.log(`Discord bot logged in as ${discordClient.user?.tag}`);
 });
 
-// Discord Bot Event: Message Create
 discordClient.on('messageCreate', async (message: Message) => {
     if (message.author.bot || message.channel.type !== ChannelType.DM) return;
 
@@ -154,7 +153,12 @@ discordClient.on('messageCreate', async (message: Message) => {
     } catch (error) {
         // @ts-ignore
         console.error('Error communicating with OpenAI:', error.response?.data || error.message);
-        await message.channel.send('Sorry, I encountered an error while processing your request.');
+
+        // Only send one error message
+        if (!previousReplies[userId] || !previousReplies[userId].includes('Sorry, I encountered an error')) {
+            previousReplies[userId] = 'Sorry, I encountered an error while processing your request.';
+            await message.channel.send(previousReplies[userId]);
+        }
     }
 });
 
