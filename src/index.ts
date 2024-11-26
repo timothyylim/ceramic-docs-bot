@@ -120,9 +120,8 @@ discordClient.on('messageCreate', async (message: Message) => {
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
-                model: 'gpt-4-turbo-32k',
+                model: 'gpt-4-turbo',
                 messages: userHistory[userId],
-                max_tokens: 500,
             },
             {
                 headers: {
