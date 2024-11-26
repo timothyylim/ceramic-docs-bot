@@ -106,8 +106,7 @@ discordClient.on('messageCreate', async (message: Message) => {
     // Initialize conversation history for the user if not present
     if (!userHistory[userId]) {
         userHistory[userId] = [
-            { role: 'system', content: 'You are ChatGPT, a helpful assistant.' },
-            { role: 'system', content: context },
+            { role: 'user', content: `You are ChatGPT, a helpful assistant. ${context}` }, // Add context to the first user message
         ];
     }
 
@@ -124,7 +123,7 @@ discordClient.on('messageCreate', async (message: Message) => {
         const response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
-                model: 'o1-mini',
+                model: 'o1-mini', // Ensure you are using a compatible model
                 messages: truncatedHistory,
             },
             {
@@ -164,6 +163,7 @@ discordClient.on('messageCreate', async (message: Message) => {
         }
     }
 });
+
 
 
 discordClient
